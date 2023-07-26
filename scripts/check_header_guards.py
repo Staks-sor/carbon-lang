@@ -20,7 +20,10 @@ class Guard(NamedTuple):
     line: int
     guard: str
 
-
+"""
+It's good practice to 
+add annotation types to all function arguments and return values. There are already some annotations in your code,
+but I recommend adding them to all functions and data types whenever possible."""
 def find_guard(
     lines: List[str], pattern: str, from_end: bool
 ) -> Optional[Guard]:
