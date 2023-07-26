@@ -25,12 +25,9 @@ def find_guard(
     lines: List[str], pattern: str, from_end: bool
 ) -> Optional[Guard]:
     """Searches the lines for something matching the pattern."""
-    lines_range: Iterable[str] = lines
-    if from_end:
-        lines_range = reversed(lines)
+    lines_range: Iterable[str] = reversed(lines) if from_end else lines
     for index, line in enumerate(lines_range):
-        m = re.match(pattern, line)
-        if m:
+        if m := re.match(pattern, line):
             if from_end:
                 index = len(lines) - index - 1
             return Guard(index, m[1])
