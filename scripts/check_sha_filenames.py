@@ -30,13 +30,13 @@ def main() -> None:
             want = "empty"
         else:
             want = hashlib.sha1(content).hexdigest()
-        want_path = path.parent.joinpath(want).with_suffix(path.suffix)
+        want_path = path.parent / f"{want}{path.suffix}"
         if path != want_path:
-            print(f"Renaming {path} to {want_path}", file=sys.stderr)
             path.rename(want_path)
             has_errors = True
+            print(f"Renamed {path} to {want_path}", file=sys.stderr)
     if has_errors:
-        exit(1)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
