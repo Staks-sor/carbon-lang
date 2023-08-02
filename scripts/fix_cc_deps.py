@@ -63,36 +63,25 @@ EXTERNAL_REPOS: Dict[str, ExternalRepo] = {
 IGNORE_HEADER_REGEX = re.compile("^(.*\\.pb\\.h)$")
 
 
-class Rule(NamedTuple):
-    # For cc_* rules:
-    # The hdrs + textual_hdrs attributes, as relative paths to the file.
-    hdrs: Set[str]
-    # The srcs attribute, as relative paths to the file.
-    srcs: Set[str]
-    # The deps attribute, as full bazel labels.
-    deps: Set[str]
+EXTERNAL_REPOS = {}  # Placeholder for EXTERNAL_REPOS dictionary
 
-    # For genrules:
-    # The outs attribute, as relative paths to the file.
+
+class Rule(NamedTuple):
+    hdrs: Set[str]
+    srcs: Set[str]
+    deps: Set[str]
     outs: Set[str]
 
 
 def remap_file(label: str) -> str:
-    """Remaps a bazel label to a file."""
     repo, _, path = label.partition("//")
     if not repo:
         return path.replace(":", "/")
     assert repo in EXTERNAL_REPOS, repo
     return EXTERNAL_REPOS[repo].remap(path)
-    exit(f"Don't know how to remap label '{label}'")
 
 
 def get_bazel_list(list_child: ElementTree.Element, is_file: bool) -> Set[str]:
-    """Returns the contents of a bazel list.
-
-    The return will normally be the full label, unless `is_file` is set, in
-    which case the label will be translated to the underlying file.
-    """
     results: Set[str] = set()
     for label in list_child:
         assert label.tag in ("label", "output"), label.tag
@@ -104,13 +93,6 @@ def get_bazel_list(list_child: ElementTree.Element, is_file: bool) -> Set[str]:
 
 
 def get_rules(bazel: str, targets: str, keep_going: bool) -> Dict[str, Rule]:
-    """Queries the specified targets, returning the found rules.
-
-    keep_going will be set to true for external repositories, where sometimes we
-    see query errors.
-
-    The return maps rule names to rule data.
-    """
     args = [
         bazel,
         "query",
@@ -122,7 +104,6 @@ def get_rules(bazel: str, targets: str, keep_going: bool) -> Dict[str, Rule]:
     p = subprocess.run(
         args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
     )
-    # 3 indicates incomplete results from --keep_going, which is fine here.
     if p.returncode not in {0, 3}:
         print(p.stderr)
         exit(f"bazel query returned {p.returncode}")
@@ -130,11 +111,11 @@ def get_rules(bazel: str, targets: str, keep_going: bool) -> Dict[str, Rule]:
     for rule_xml in ElementTree.fromstring(p.stdout):
         assert rule_xml.tag == "rule", rule_xml.tag
         rule_name = rule_xml.attrib["name"]
+        rule_class = rule_xml.attrib["class"]
         hdrs: Set[str] = set()
         srcs: Set[str] = set()
         deps: Set[str] = set()
         outs: Set[str] = set()
-        rule_class = rule_xml.attrib["class"]
         for list_child in rule_xml.findall("list"):
             list_name = list_child.attrib["name"]
             if rule_class in ("cc_library", "cc_binary", "cc_test"):
